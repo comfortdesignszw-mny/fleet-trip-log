@@ -1,0 +1,5 @@
+{
+  "name": "Fleet Trip Log",
+  "description": "Professional offline-first vehicle trip management and reporting system with PDF exports and audit logs.",
+  "requestFramePermissions": []
+}

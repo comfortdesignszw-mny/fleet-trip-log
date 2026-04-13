@@ -1,0 +1,129 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId (UID)
+    // Fields:
+    //   - uid: string (required)
+    //   - email: string (required, email format)
+    //   - displayName: string (required)
+    //   - phoneNumber: string (required)
+    //   - pin: string (required, 4 digits)
+    //   - role: string (required, 'admin' or 'driver')
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: trips
+    // Document ID: tripId
+    // Fields:
+    //   - driverName: string (required)
+    //   - tripType: string (required, 'Trip' or 'Hire')
+    //   - tripReason: string (required)
+    //   - destination: string (required)
+    //   - notes: string (optional)
+    //   - dateOut: string (required)
+    //   - timeOut: string (required)
+    //   - mileageOut: number (required)
+    //   - fuelOut: string (required)
+    //   - dateIn: string (optional)
+    //   - timeIn: string (optional)
+    //   - mileageIn: number (optional)
+    //   - fuelIn: string (optional)
+    //   - totalMileage: number (optional)
+    //   - status: string (required, 'active' or 'completed')
+    //   - createdBy: string (required, UID)
+    //   - createdByName: string (required)
+    //   - completedBy: string (optional)
+    //   - completedByName: string (optional)
+    //   - createdAt: timestamp (required)
+    //   - updatedAt: timestamp (required)
+    //
+    // Collection: settings
+    // Document ID: vehicle
+    // Fields:
+    //   - make: string (required)
+    //   - model: string (required)
+    //   - plateNumber: string (required)
+    //   - year: string (required)
+    //   - updatedAt: timestamp (required)
+    //   - updatedBy: string (required, UID)
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+         (request.auth.token.email == "comfort.designszw@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUser(data) {
+      let requiredFields = ['uid', 'email', 'displayName', 'phoneNumber', 'pin', 'role', 'createdAt'];
+      return data.keys().hasAll(requiredFields) &&
+             data.uid == request.auth.uid &&
+             isValidEmail(data.email) &&
+             data.pin.matches("^\\d{4}$") &&
+             data.role in ['admin', 'driver'];
+    }
+
+    function isValidTrip(data) {
+      let requiredFields = ['vehicleName', 'vehicleReg', 'driverName', 'tripType', 'tripReason', 'destination', 'dateOut', 'timeOut', 'mileageOut', 'fuelOut', 'status', 'createdBy', 'createdByName', 'createdAt', 'updatedAt'];
+      return data.keys().hasAll(requiredFields) &&
+             data.mileageOut is number &&
+             data.status in ['active', 'completed'] &&
+             (data.createdBy == request.auth.uid || isAdmin());
+    }
+
+    function isValidVehicle(data) {
+      let fields = ['make', 'model', 'plateNumber', 'year', 'updatedAt', 'updatedBy'];
+      return data.keys().hasAll(fields) &&
+             data.keys().hasOnly(fields) &&
+             data.updatedBy == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if request.auth != null && (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data);
+    }
+
+    match /trips/{tripId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && isValidTrip(request.resource.data);
+      allow update: if request.auth != null && (request.auth.uid == resource.data.createdBy || isAdmin()) && isValidTrip(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() && (settingId == 'vehicle' ? isValidVehicle(request.resource.data) : true);
+    }
+  }
+}

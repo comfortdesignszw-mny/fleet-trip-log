@@ -1,0 +1,99 @@
+{
+  "entities": {
+    "TripRecord": {
+      "title": "Trip Record",
+      "description": "Details of a vehicle trip including outbound and inbound data.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "vehicleName": { "type": "string" },
+        "vehicleReg": { "type": "string" },
+        "driverName": { "type": "string" },
+        "tripType": { "type": "string", "enum": ["Trip", "Hire"] },
+        "tripReason": { "type": "string" },
+        "destination": { "type": "string" },
+        "notes": { "type": "string" },
+        "dateOut": { "type": "string" },
+        "timeOut": { "type": "string" },
+        "mileageOut": { "type": "number" },
+        "fuelOut": { "type": "string" },
+        "dateIn": { "type": "string" },
+        "timeIn": { "type": "string" },
+        "mileageIn": { "type": "number" },
+        "fuelIn": { "type": "string" },
+        "totalMileage": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "completed"] },
+        "createdBy": { "type": "string" },
+        "createdByName": { "type": "string" },
+        "completedBy": { "type": "string" },
+        "completedByName": { "type": "string" },
+        "createdAt": { "type": "object" },
+        "updatedAt": { "type": "object" }
+      },
+      "required": ["driverName", "tripType", "tripReason", "destination", "dateOut", "timeOut", "mileageOut", "fuelOut", "status", "createdBy", "createdByName"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User account details including phone and PIN.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "pin": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "driver"] },
+        "createdAt": { "type": "object" }
+      },
+      "required": ["uid", "email", "displayName", "phoneNumber", "pin", "role"]
+    },
+    "AuditLog": {
+      "title": "Audit Log",
+      "description": "Record of actions performed in the system for accountability.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "action": { "type": "string" },
+        "entityId": { "type": "string" },
+        "entityType": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "timestamp": { "type": "object" },
+        "details": { "type": "object" }
+      },
+      "required": ["action", "entityId", "entityType", "userId", "userEmail", "timestamp"]
+    },
+    "VehicleConfig": {
+      "title": "Vehicle Configuration",
+      "description": "Primary vehicle details for reports.",
+      "type": "object",
+      "properties": {
+        "make": { "type": "string" },
+        "model": { "type": "string" },
+        "plateNumber": { "type": "string" },
+        "year": { "type": "string" },
+        "updatedAt": { "type": "object" },
+        "updatedBy": { "type": "string" }
+      },
+      "required": ["make", "model", "plateNumber", "year", "updatedBy"]
+    }
+  },
+  "firestore": {
+    "/trips/{tripId}": {
+      "schema": "TripRecord",
+      "description": "Collection of vehicle trip records."
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile information."
+    },
+    "/audit_logs/{logId}": {
+      "schema": "AuditLog",
+      "description": "System audit logs."
+    },
+    "/settings/{settingId}": {
+      "schema": "VehicleConfig",
+      "description": "Application settings including vehicle config."
+    }
+  }
+}
